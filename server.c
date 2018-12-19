@@ -1,5 +1,3 @@
-// C program to implement one side of FIFO
-// This side reads first, then writes
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -24,8 +22,7 @@ struct Tarefas
     int id;
     char cmd[100];
     char estado;
-    int data;
-    int hora;
+    int dia, mes, ano, hora, minuto;
     char output[1024];
 };
 
@@ -42,11 +39,11 @@ struct Alarm alarms[200];
 int countTarefas()
 {
     int count = 0, i = 0;
-    while (tarefa[i].data != 0)
+    while (tarefa[i].dia != NULL)
         i++;
-    printf("%d", i);
     return i;
 };
+
 
 int countAlarms()
 {
@@ -57,25 +54,18 @@ int countAlarms()
     return i;
 };
 
-int manageCommand(char *command)
-{
-
-    // char str = *command.Substring(0,5);
-    // int nbyte =256;
-    // if(prefixo("-a",command) == true){
-    //     printf("true");
-    // }
-
-    return 0;
-}
 
 int getAlarm()
 {
 }
 
+int alarmStatus(double difference){
+
+}
+
 time_t getSeconds(int *dataValues[3], int *timeValues[2])
 {
-    
+
     struct tm date;
     time_t timeA, timeB;
     struct tm tA, tB, *tptr;
@@ -112,17 +102,16 @@ time_t getSeconds(int *dataValues[3], int *timeValues[2])
     printf("Tn\n");
     printf("dia - %d\n", tB.tm_mday);
     printf("mes - %d\n", tB.tm_mon);
-    printf("ano - %d\n", tB.tm_year );
+    printf("ano - %d\n", tB.tm_year);
     printf("hor - %d\n", tB.tm_hour);
     printf("min - %d\n", tB.tm_min);
-
 
     timeA = mktime(&tA);
     timeB = mktime(&tB);
 
     difference = difftime(timeB, timeA);
-    printf ("Difference is %.0f seconds\n", difference);
-    return 0;
+    // printf("Difference is %.0f seconds\n", difference);
+    return difference;
 }
 int setAlarm(timeToTask)
 {
@@ -144,7 +133,7 @@ int main()
     char *agendar = "-a";
     char *listar = "-l";
     int len;
-    char *data[100];
+    char *data[10];
     char *horas[10];
     char *comando[100];
     int init_size = strlen(buf1);
@@ -173,7 +162,7 @@ int main()
         read(fd1, buf1, nbyte);
 
         printf("BUFFER TEM : %s\n", buf1);
-     
+
         token[0] = strtok(buf1, delim);
         int i = 0;
         while (token[i] != NULL)
@@ -193,7 +182,6 @@ int main()
             sscanf(token[3], "%s\n", comando);
             printf("data: %s\nhoras: %s \ncomando: %s\n", &data, &horas, &comando);
 
-        
             dataToken[0] = strtok(&data, "/");
             int i = 0;
             while (dataToken[i] != NULL)
@@ -220,27 +208,26 @@ int main()
             sscanf(timeToken[0], "%d\n", &hora);
             sscanf(timeToken[1], "%d\n", &minuto);
             printf("hora: %d\nminuto: %d\n", hora, minuto);
-            
+
             timeAux[0] = hora;
             timeAux[1] = minuto;
 
-
-            getSeconds(dataAux, timeAux);
-
-            printf("numero de tarefas: \t");
-
-
+            double difference = getSeconds(dataAux, timeAux);
+            printf("Difference is %.0f seconds\n", difference);
 
             int n = countTarefas();
+            printf("\nnumero de tarefas: \t %d\n", n);
             printf("\n");
 
             tarefa[n].id = n;
-            tarefa[n].data = data;
-            tarefa[n].hora = horas;
+            tarefa[n].dia = dia;
+            tarefa[n].mes = mes;
+            tarefa[n].ano = ano;
+            tarefa[n].hora = hora;
+            tarefa[n].minuto = minuto;
             strcpy(tarefa[n].cmd, comando);
 
             // timeToTask = getSeconds(dataAux, timeAux);
-            printf("tempo que falta: %d", timeToTask);
 
             // storeTask(tarefa[n].id, tarefa[n].data, tarefa[n].hora);
         }
@@ -251,7 +238,7 @@ int main()
             num = countTarefas();
             for (int i = 0; i < num; i++)
             {
-                printf("tafera: %d \t data : %d\t horas: %d\t comando: %s", tarefa[i].id, tarefa[i].data, tarefa[i].hora, tarefa[i].cmd);
+                printf("tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
             }
         }
 
