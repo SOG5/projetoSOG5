@@ -44,6 +44,7 @@ int countTarefas()
     return i;
 };
 
+
 int countAlarms()
 {
     int count = 0, i = 0;
@@ -53,20 +54,13 @@ int countAlarms()
     return i;
 };
 
-int manageCommand(char *command)
-{
-
-    // char str = *command.Substring(0,5);
-    // int nbyte =256;
-    // if(prefixo("-a",command) == true){
-    //     printf("true");
-    // }
-
-    return 0;
-}
 
 int getAlarm()
 {
+}
+
+int alarmStatus(double difference){
+
 }
 
 time_t getSeconds(int *dataValues[3], int *timeValues[2])
