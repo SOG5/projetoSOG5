@@ -29,11 +29,15 @@ struct Tarefas
     char output[1024];
 };
 
-struct Tarefas tarefa[200];
+struct Alarm
+{
+    int alarmID;
+    int timeToTask;
+};
 
 //Variáveis globais...
-static int alarme[200];
 struct Tarefas tarefa[200];
+struct Alarm alarms[200];
 
 int countTarefas()
 {
@@ -44,43 +48,15 @@ int countTarefas()
     return i;
 };
 
-// int agendarTarefa(char **token)
+int countAlarms()
+{
+    int count = 0, i = 0;
+    while (alarms[i].timeToTask != 0)
+        i++;
+    printf("%d", i);
+    return i;
+};
 
-// {
-//     char delim[] = " ";
-//     char buffer[] = "cenas";
-//     int sizeTarefas = countTarefas();
-//     printf("token 0: %s", token[0]);
-//     printf("token size: %ld", sizeof(token));
-//     printf("FISRST %s\n", token[0]);
-//     int i = 0;
-//     while (token[i] != NULL)
-//     {
-//         printf("TOKEN %d : %s\n", i, token[i]);
-//         i++;
-//         token[i] = strtok(NULL, delim);
-//     }
-//     printf("AQUI");
-//     tarefa[sizeTarefas].id = sizeTarefas;
-//     tarefa[sizeTarefas].data << *token[1];
-
-//     int n = 0;
-//     for (i = 2; i <= sizeof(token); i++)
-//     {
-//         tarefa[sizeTarefas].cmd[n] << *token[i];
-//         n++;
-//     }
-
-//     while (token[i] != NULL)
-//     {
-//         printf("TOKEN %d : %s\n", i, token[i]);
-//         i++;
-//         token[i] = strtok(NULL, " ");
-//     }
-
-//     // tarefa[sizeTarefas].data = token[2];
-//     printf("Pee agendamento recebido");
-// }
 int manageCommand(char *command)
 {
 
@@ -91,7 +67,72 @@ int manageCommand(char *command)
     // }
 
     return 0;
-};
+}
+
+int getAlarm()
+{
+}
+
+time_t getSeconds(int *dataValues[3], int *timeValues[2])
+{
+    
+    struct tm date;
+    time_t timeA, timeB;
+    struct tm tA, tB, *tptr;
+    double difference;
+    struct tm *timeinfo;
+
+    time(&timeA);
+    time(&timeB);
+
+    timeinfo = localtime(&timeA);
+    printf("Current local time and date: %s", asctime(timeinfo));
+
+    tptr = localtime(&timeA);
+    tA = *tptr;
+    tptr = localtime(&timeB);
+    tB = *tptr;
+    tA.tm_mday = tA.tm_mday;
+    tA.tm_mon = tA.tm_mon + 1;
+    tA.tm_year = (tA.tm_year + 1900);
+
+    printf("Tn\n");
+    printf("dia - %d\n", tA.tm_mday);
+    printf("mes - %d\n", tA.tm_mon);
+    printf("ano - %d\n", tA.tm_year);
+    printf("hor - %d\n", tA.tm_hour);
+    printf("min - %d\n", tA.tm_min);
+
+    tB.tm_mday = dataValues[0];
+    tB.tm_mon = dataValues[1];
+    tB.tm_year = dataValues[2];
+    tB.tm_hour = timeValues[0];
+    tB.tm_min = timeValues[1];
+
+    printf("Tn\n");
+    printf("dia - %d\n", tB.tm_mday);
+    printf("mes - %d\n", tB.tm_mon);
+    printf("ano - %d\n", tB.tm_year );
+    printf("hor - %d\n", tB.tm_hour);
+    printf("min - %d\n", tB.tm_min);
+
+
+    timeA = mktime(&tA);
+    timeB = mktime(&tB);
+
+    difference = difftime(timeB, timeA);
+    printf ("Difference is %.0f seconds\n", difference);
+    return 0;
+}
+int setAlarm(timeToTask)
+{
+    int timeToNext = getAlarm();
+    if (timeToNext > timeToTask)
+    {
+
+        //CRIAR ALARME
+    }
+}
 
 int main()
 {
@@ -103,15 +144,19 @@ int main()
     char *agendar = "-a";
     char *listar = "-l";
     int len;
-         int data;
-        int horas;
-        char *comando[100];
+    char *data[100];
+    char *horas[10];
+    char *comando[100];
     int init_size = strlen(buf1);
-
+    time_t timeToTask;
     size_t num;
     char *tarefaRealizar;
-    int index;
-    char *aux2;
+    int index, dateToConvert, timeToConvert, *dataAux[3], *timeAux[2], *dia, *mes, *ano, *hora, *minuto;
+    int *newTime, *newDate;
+    char *aux2[100];
+    char *aux3[100];
+    memset(aux3, 0, sizeof aux3);
+    memset(aux2, 0, sizeof aux2);
     // FIFO file path
     char *myfifo = "/tmp/myfifo";
 
@@ -119,17 +164,16 @@ int main()
     // mkfifo(<pathname>,<permission>)
     mkfifo(myfifo, 0666);
 
-    char *token[nbyte], response[256];
+    char *token[nbyte], *dataToken[nbyte], *timeToken[100], response[256];
     while (1)
     {
-   
 
         // First open in read only and read to buf1
         fd1 = open(myfifo, O_RDONLY);
         read(fd1, buf1, nbyte);
 
         printf("BUFFER TEM : %s\n", buf1);
-
+     
         token[0] = strtok(buf1, delim);
         int i = 0;
         while (token[i] != NULL)
@@ -139,56 +183,78 @@ int main()
             token[i] = strtok(NULL, delim);
         }
 
+        //agendar
         if (strcmp(token[0], agendar) == 0)
         {
 
-            printf("Pee agendamento recebido");
-            sscanf(token[1], "%d\n", &data);
-            sscanf(token[2], "%d\n", &horas);
+            printf("Pee agendamento recebido\n");
+            sscanf(token[1], "%s\n", data);
+            sscanf(token[2], "%s\n", horas);
             sscanf(token[3], "%s\n", comando);
-            printf("data: %d\n horas: %d \n comando: %s", data, horas, &comando);
-            // char *aux = strstr(buf1, &comando);
-            // printf("\nAUX :%c", aux);
+            printf("data: %s\nhoras: %s \ncomando: %s\n", &data, &horas, &comando);
+
+        
+            dataToken[0] = strtok(&data, "/");
+            int i = 0;
+            while (dataToken[i] != NULL)
+            {
+                i++;
+                dataToken[i] = strtok(NULL, "/");
+            }
+            sscanf(dataToken[0], "%d\n", &dia);
+            sscanf(dataToken[1], "%d\n", &mes);
+            sscanf(dataToken[2], "%d\n", &ano);
+
+            printf("dia: %d\nmes: %d \nano: %d\n", dia, mes, ano);
+            dataAux[0] = dia;
+            dataAux[1] = mes;
+            dataAux[2] = ano;
+
+            timeToken[0] = strtok(&horas, ":");
+            int c = 0;
+            while (timeToken[c] != NULL)
+            {
+                c++;
+                timeToken[c] = strtok(NULL, ":");
+            }
+            sscanf(timeToken[0], "%d\n", &hora);
+            sscanf(timeToken[1], "%d\n", &minuto);
+            printf("hora: %d\nminuto: %d\n", hora, minuto);
+            
+            timeAux[0] = hora;
+            timeAux[1] = minuto;
+
+
+            getSeconds(dataAux, timeAux);
+
+            printf("numero de tarefas: \t");
+
 
 
             int n = countTarefas();
+            printf("\n");
 
             tarefa[n].id = n;
             tarefa[n].data = data;
             tarefa[n].hora = horas;
             strcpy(tarefa[n].cmd, comando);
 
-            // strcpy(tarefa[n].cmd, aux);
-            printf("Pee agendamento a");
+            // timeToTask = getSeconds(dataAux, timeAux);
+            printf("tempo que falta: %d", timeToTask);
+
+            // storeTask(tarefa[n].id, tarefa[n].data, tarefa[n].hora);
         }
+        // listar
         else if (strcmp(token[0], listar) == 0)
         {
             printf("Pedido de listagem\n");
             num = countTarefas();
             for (int i = 0; i < num; i++)
             {
-                printf("tafera: %d \n data : %d\n horas: %d\n comando: %s", tarefa[i].id, tarefa[i].data, tarefa[i].hora, tarefa[i].cmd);
-                // for (int n = 0; n <= 2; n++)
-                //     printf("comandos: %d", tarefa[i].cmd[n]);
+                printf("tafera: %d \t data : %d\t horas: %d\t comando: %s", tarefa[i].id, tarefa[i].data, tarefa[i].hora, tarefa[i].cmd);
             }
         }
 
-        // printf("FISRST %s\n", token[0]);
-        // int i = 0;
-        // while (token[i] != NULL)
-        // {
-        //     printf("TOKEN %d : %s\n", i, token[i]);
-        //     i++;
-        //     token[i] = strtok(NULL, delim);
-        // }
-
-        // for (i = 0; i < sizeof(token); i++)
-        // {
-        //     printf("TOKEN %c", token[i]);
-        // }
-
-        // Print the read string and close
-        // printf("User1: %s\n", buf);
         memset(buf1, 0, strlen(buf1));
 
         close(fd1);
