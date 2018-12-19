@@ -44,7 +44,6 @@ int countTarefas()
     return i;
 };
 
-
 int countAlarms()
 {
     int count = 0, i = 0;
@@ -54,21 +53,20 @@ int countAlarms()
     return i;
 };
 
-
 int getAlarm()
 {
 }
 
-int alarmStatus(double difference){
-
+int alarmStatus(double difference)
+{
 }
 
 time_t getSeconds(int *dataValues[3], int *timeValues[2])
 {
 
-    struct tm date;
+    struct tm date, tA, tB, *tptr;
+    ;
     time_t timeA, timeB;
-    struct tm tA, tB, *tptr;
     double difference;
     struct tm *timeinfo;
 
@@ -123,19 +121,85 @@ int setAlarm(timeToTask)
     }
 }
 
+int execTask(int taskID)
+{
+
+    int nbyte = 256;
+    char delim[] = " ";
+    char *cmd[256], *token[nbyte];
+    printf("\nEXEC TASK\n");
+
+    int n = countTarefas();
+    for (int i = 0; i < n; i++)
+    {
+        if (tarefa[i].id == taskID)
+            strcpy(cmd, tarefa[i].cmd);
+    }
+    printf("comando a executrar: %s\n", &cmd);
+
+    token[0] = strtok(cmd, delim);
+    int i = 0;
+    while (token[i] != NULL)
+    {
+        if (i == 0)
+            printf("Executável: %s\n", token[i]);
+        else
+            printf("Arg %d : %s\n", i, token[i]);
+        i++;
+        token[i] = strtok(NULL, delim);
+    }
+
+    int pid;
+    pid = fork();
+    
+    if (pid == 0)
+    {
+        execvp(token[0], token);
+        perror("Erro no execlp: ");
+    }
+    else
+    {
+        wait(&pid);
+    }
+
+    return 0;
+}
+
+// void signalHandler(int sig){
+//     int pid;
+//     switch (sig){
+//         case 1:
+//             printf("Cliente terminou conexão.\n");
+//             break;
+//         case 14:
+//             dprintf(1,"Alarme recebido\n");
+//             if((pid = fork()) < 0){
+//                 perror("fork no alarme");
+//                 exit(-1);
+//             } else if(pid == 0){
+//                 executarTarefa();
+//             } else {
+//                 wait(&pid);
+//             }
+//             ajustarAlarmes();
+//             break;
+//         default:
+//             printf("Sinal %d recebido\n",sig);
+//     }
+// }
+
 int main()
 {
 
     int fd1, nbyte = 256;
-    char *buf1 = (char *)malloc(nbyte * sizeof(char));
-    char *buf2 = (char *)malloc(nbyte * sizeof(char));
+    char *buf1 = (char *)malloc(nbyte * sizeof(char)), *buf2 = (char *)malloc(nbyte * sizeof(char));
+    ;
     char delim[] = " ";
-    char *agendar = "-a";
-    char *listar = "-l";
+    char *agendar = "-a", *listar = "-l", *exec = "-e";
     int len;
     char *data[10];
     char *horas[10];
-    char *comando[100];
+    char *comando[nbyte];
     int init_size = strlen(buf1);
     time_t timeToTask;
     size_t num;
@@ -165,13 +229,17 @@ int main()
 
         token[0] = strtok(buf1, delim);
         int i = 0;
-        while (token[i] != NULL)
+        while (token[i] != NULL || i < 4)
         {
             printf("TOKEN %d : %s\n", i, token[i]);
             i++;
-            token[i] = strtok(NULL, delim);
+            if (i == 3)
+                token[i] = strtok(NULL, "\n");
+            else
+            {
+                token[i] = strtok(NULL, delim);
+            }
         }
-
         //agendar
         if (strcmp(token[0], agendar) == 0)
         {
@@ -179,7 +247,8 @@ int main()
             printf("Pee agendamento recebido\n");
             sscanf(token[1], "%s\n", data);
             sscanf(token[2], "%s\n", horas);
-            sscanf(token[3], "%s\n", comando);
+            strcpy(comando, token[3]);
+            // sscanf(token[3], "%s\n", comando);
             printf("data: %s\nhoras: %s \ncomando: %s\n", &data, &horas, &comando);
 
             dataToken[0] = strtok(&data, "/");
@@ -240,6 +309,12 @@ int main()
             {
                 printf("tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
             }
+        }
+
+        else if ((strcmp(token[0], exec) == 0))
+        {
+            printf("Pedido para exec\n");
+            execTask(0);
         }
 
         memset(buf1, 0, strlen(buf1));
