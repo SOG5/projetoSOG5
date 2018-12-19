@@ -73,79 +73,56 @@ int getAlarm()
 {
 }
 
-int *converterData(int data)
+time_t getSeconds(int *dataValues[3], int *timeValues[2])
 {
-    //Entra -> 20181229
-    //Fica no array -> 9 2 2 1 8 1 0 2
-    int newData[8];
-    static int valoresData[3];
-
-    for (int i = 0; i < 8; i++)
-    {
-        newData[i] = data % 10;
-        data = data / 10;
-    }
-
-    //Dia
-    valoresData[0] = newData[1] * 10 + newData[0];
-    //Mês
-    valoresData[1] = newData[3] * 10 + newData[2];
-    //Ano
-    valoresData[2] = newData[7] * 1000 + newData[6] * 100 + newData[5] * 10 + newData[4];
-
-    return valoresData;
-}
-
-int *converterHoras(int horas)
-{
-    //Entra -> 1634
-    //Fica no array -> 4 3 6 1
-    int newHoras[4];
-    static int valoresHoras[2];
-
-    for (int i = 0; i < 4; i++)
-    {
-        newHoras[i] = horas % 10;
-        horas = horas / 10;
-    }
-
-    //Minutos
-    valoresHoras[0] = newHoras[1] * 10 + newHoras[0];
-    //Hora
-    valoresHoras[1] = newHoras[3] * 10 + newHoras[2];
-
-    return valoresHoras;
-}
-
-time_t getSeconds(int *valoresData, int *valoresHoras)
-{
+    
     struct tm date;
+    time_t timeA, timeB;
+    struct tm tA, tB, *tptr;
+    double difference;
+    struct tm *timeinfo;
 
-    if ((*(valoresData + 2) - 1900) < 117 || *(valoresData + 1) - 1 > 11 || *(valoresData) > 31 || *(valoresHoras + 1) > 23 || *(valoresHoras) > 60)
-    {
-        return -1;
-    }
+    time(&timeA);
+    time(&timeB);
 
-    date.tm_year = *(valoresData + 2) - 1900;
-    date.tm_mon = *(valoresData + 1) - 1;
-    date.tm_mday = *(valoresData);
-    date.tm_hour = *(valoresHoras + 1);
-    date.tm_min = *(valoresHoras);
-    date.tm_sec = 0;
-    date.tm_isdst = -1;
+    timeinfo = localtime(&timeA);
+    printf("Current local time and date: %s", asctime(timeinfo));
 
-    time_t agendamento = mktime(&date);
-    time_t now = time(NULL);
-    time_t diferenca = agendamento - now;
+    tptr = localtime(&timeA);
+    tA = *tptr;
+    tptr = localtime(&timeB);
+    tB = *tptr;
+    tA.tm_mday = tA.tm_mday;
+    tA.tm_mon = tA.tm_mon + 1;
+    tA.tm_year = (tA.tm_year + 1900);
 
-    if (diferenca < 0)
-    {
-        return 0;
-    }
-    else
-    {
-        return diferenca;
-    }
+    printf("Tn\n");
+    printf("dia - %d\n", tA.tm_mday);
+    printf("mes - %d\n", tA.tm_mon);
+    printf("ano - %d\n", tA.tm_year);
+    printf("hor - %d\n", tA.tm_hour);
+    printf("min - %d\n", tA.tm_min);
+
+    tB.tm_mday = dataValues[0];
+    tB.tm_mon = dataValues[1];
+    tB.tm_year = dataValues[2];
+    tB.tm_hour = timeValues[0];
+    tB.tm_min = timeValues[1];
+
+    printf("Tn\n");
+    printf("dia - %d\n", tB.tm_mday);
+    printf("mes - %d\n", tB.tm_mon);
+    printf("ano - %d\n", tB.tm_year );
+    printf("hor - %d\n", tB.tm_hour);
+    printf("min - %d\n", tB.tm_min);
+
+
+    timeA = mktime(&tA);
+    timeB = mktime(&tB);
+
+    difference = difftime(timeB, timeA);
+    printf ("Difference is %.0f seconds\n", difference);
+    return 0;
 }
 int setAlarm(timeToTask)
 {
@@ -169,13 +146,12 @@ int main()
     int len;
     char *data[100];
     char *horas[10];
-    char *dia[3], *mes[3], *ano[5], *hora[3], *minuto[3];
     char *comando[100];
     int init_size = strlen(buf1);
     time_t timeToTask;
     size_t num;
     char *tarefaRealizar;
-    int index, dateToConvert, timeToConvert, *dataAux, *timeAux;
+    int index, dateToConvert, timeToConvert, *dataAux[3], *timeAux[2], *dia, *mes, *ano, *hora, *minuto;
     int *newTime, *newDate;
     char *aux2[100];
     char *aux3[100];
@@ -197,7 +173,7 @@ int main()
         read(fd1, buf1, nbyte);
 
         printf("BUFFER TEM : %s\n", buf1);
-
+     
         token[0] = strtok(buf1, delim);
         int i = 0;
         while (token[i] != NULL)
@@ -217,7 +193,7 @@ int main()
             sscanf(token[3], "%s\n", comando);
             printf("data: %s\nhoras: %s \ncomando: %s\n", &data, &horas, &comando);
 
-            //recebe string com data no formato DD/MM/AAAA e divide em token[0] = dia, token[1] = mes, token[2]=ano
+        
             dataToken[0] = strtok(&data, "/");
             int i = 0;
             while (dataToken[i] != NULL)
@@ -225,20 +201,14 @@ int main()
                 i++;
                 dataToken[i] = strtok(NULL, "/");
             }
-            sscanf(dataToken[0], "%s\n", dia);
-            sscanf(dataToken[1], "%s\n", mes);
-            sscanf(dataToken[2], "%s\n", ano);
+            sscanf(dataToken[0], "%d\n", &dia);
+            sscanf(dataToken[1], "%d\n", &mes);
+            sscanf(dataToken[2], "%d\n", &ano);
 
-            strcat(aux2, ano);
-            strcat(aux2, mes);
-            strcat(aux2, dia);
-            printf("dia: %s\nmes: %s \nano: %s\n", dia, mes, ano);
-
-            printf("AUX2: %s\n", &aux2);
-            sscanf(aux2, "%d\n", &dateToConvert);
-            printf("date to convert: %d\n", dateToConvert);
-
-            memset(aux2, 0, sizeof aux2);
+            printf("dia: %d\nmes: %d \nano: %d\n", dia, mes, ano);
+            dataAux[0] = dia;
+            dataAux[1] = mes;
+            dataAux[2] = ano;
 
             timeToken[0] = strtok(&horas, ":");
             int c = 0;
@@ -247,38 +217,30 @@ int main()
                 c++;
                 timeToken[c] = strtok(NULL, ":");
             }
-            sscanf(timeToken[0], "%s\n", hora);
-            sscanf(timeToken[1], "%s\n", minuto);
-            printf("hora: %s\nminuto: %s\n", hora, minuto);
+            sscanf(timeToken[0], "%d\n", &hora);
+            sscanf(timeToken[1], "%d\n", &minuto);
+            printf("hora: %d\nminuto: %d\n", hora, minuto);
+            
+            timeAux[0] = hora;
+            timeAux[1] = minuto;
 
-            strcat(aux3, hora);
-            strcat(aux3, minuto);
-            sscanf(aux3, "%d\n", &timeToConvert);
-            // sscanf(aux2,"%d\n",dateToConvert);
-            printf("time to convert: %d\n", timeToConvert);
+
+            getSeconds(dataAux, timeAux);
+
             printf("numero de tarefas: \t");
 
-            memset(aux3, 0, sizeof aux3);
+
 
             int n = countTarefas();
             printf("\n");
-
-            dataAux = converterData(dateToConvert);
-            timeAux = converterHoras(timeToConvert);
-            printf("---------------------------\n");
-            printf("newDate : %d %d %d\n", dataAux[0],data[1],data[2]);
-            printf("newTime : %d %d \n", timeAux[0], timeAux[1]);
-            printf("-----------------------------\n");
 
             tarefa[n].id = n;
             tarefa[n].data = data;
             tarefa[n].hora = horas;
             strcpy(tarefa[n].cmd, comando);
 
-           
-            timeToTask = getSeconds(dataAux, timeAux);
-            printf ( "tempo que falta: %d",timeToTask );
-
+            // timeToTask = getSeconds(dataAux, timeAux);
+            printf("tempo que falta: %d", timeToTask);
 
             // storeTask(tarefa[n].id, tarefa[n].data, tarefa[n].hora);
         }
