@@ -219,35 +219,47 @@ int execTask()
         }
     }
 
-    for(int i =0; i<countCmd; i++){
-          printf("comando a executrar: %s\n", comandos[i].cmd);
+    for (int i = 0; i < countCmd; i++)
+    {
+        printf("comando a executrar: %s\n", comandos[i].cmd);
     }
 
-    printf("comando a executrar: %s\n", comandos[0].cmd);
+    // printf("comando a executrar: %s\n", comandos[0].cmd);
 
-    token[0] = strtok(cmd, delim);
-    int i = 0;
-    while (token[i] != NULL)
-    {
-        if (i == 0)
-            printf("Executável: %s\n", token[i]);
-        else
-            printf("Arg %d : %s\n", i, token[i]);
-        i++;
-        token[i] = strtok(NULL, delim);
-    }
+    pid_t pid;
+    int status;
+    int pid_number;
 
-    int pid;
-    pid = fork();
+    for (int i = 0; i < countCmd; i++)
+    {
+        if ((pid = fork()) < 0)
+        {
+            perror("fork");
+            abort();
+        }
+        else if (pid == 0)
+        {
+            token[0] = strtok(comandos[i].cmd, delim);
+            printf("TOKEN0 !!!!! %s ", token[0]);
+            int i = 0;
+            while (token[i] != NULL)
+            {
+                if (i == 0)
+                    printf("Executável: %s\n", token[i]);
+                else
+                    printf("Arg %d : %s\n", i, token[i]);
+                i++;
+                token[i] = strtok(NULL, delim);
+            }
+            execvp(token[0], token);
+            perror("Erro no execlp: ");
+        }
 
-    if (pid == 0)
-    {
-        execvp(token[0], token);
-        perror("Erro no execlp: ");
-    }
-    else
-    {
-        wait(&pid);
+        while (pid_number = wait(&status) > 0)
+        {
+            pid_number = wait(&status);
+            printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
+        }
     }
 
     return 0;
