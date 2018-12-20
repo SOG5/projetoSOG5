@@ -249,7 +249,7 @@ int execTask()
             close(1);
             dup(pd[i][1]);
             token[0] = strtok(comandos[i].cmd, delim);
-            printf("TOKEN0 !!!!! %s ", token[0]);
+            // printf("TOKEN0 !!!!! %s ", token[0]);
             int i = 0;
             while (token[i] != NULL)
             {
