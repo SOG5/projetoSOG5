@@ -192,6 +192,7 @@ int cancelTask(int taskID)
 int execTask()
 {
 
+    char *output[10][1024];
     int nbyte = 256;
     char delim[] = " ";
     char *cmd[256], *token[nbyte];
@@ -229,9 +230,14 @@ int execTask()
     pid_t pid;
     int status;
     int pid_number;
+    int pd[10][2];
+
+    // pipe(pd);
+   
 
     for (int i = 0; i < countCmd; i++)
     {
+        pipe(pd[i]);
         if ((pid = fork()) < 0)
         {
             perror("fork");
@@ -239,6 +245,9 @@ int execTask()
         }
         else if (pid == 0)
         {
+            close(pd[i][0]);
+            close(1);
+            dup(pd[i][1]);
             token[0] = strtok(comandos[i].cmd, delim);
             printf("TOKEN0 !!!!! %s ", token[0]);
             int i = 0;
@@ -257,8 +266,32 @@ int execTask()
 
         while (pid_number = wait(&status) > 0)
         {
+
+            close(pd[i][1]); //Fecho o descritor de ficheiro associado ao descritor de escrita do pipe
+            dup2(pd[i][0], 0);
+            read(0, output[i], sizeof(output[i]));
+            printf("\n -------- OUTPUT ----\n");
+
+            printf("%s\n", output[i]);
+            printf("\n ---------------\n");
+        
             pid_number = wait(&status);
-            printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
+            // printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
+        }
+    }
+
+   for (int aux = 0; aux < countCmd; aux++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            int taksid = taskID[aux];
+            if (tarefa[i].id == taksid)
+            {
+                strcpy(tarefa[taksid].output, output[aux]);
+                tarefa[taksid].state = 1;
+                printf("OUTPUT GUARDADO!!!! ");
+                printf("%s", tarefa[taksid].output);
+            }
         }
     }
 
