@@ -25,6 +25,7 @@ struct Tarefas
     int state;
     double timeToTask;
     int dia, mes, ano, hora, minuto;
+    int exitValue;
     char output[1024];
     char outputERR[1024];
 };
@@ -123,7 +124,7 @@ int setAlarm()
     int n = countTarefas();
     for (int i = 0; i < n; i++)
     {
-        if (tarefa[i].state == 0)
+        if (tarefa[i].state == 0 && tarefa[i].timeToTask >0)
         {
             dataAux[0] = tarefa[i].dia;
             dataAux[1] = tarefa[i].mes;
@@ -146,7 +147,7 @@ int setAlarm()
     int aux = 0;
     for (int i = 0; i < n; i++)
     {
-        if (tarefa[i].timeToTask == diffAux)
+        if (tarefa[i].state == 0 && tarefa[i].timeToTask == diffAux)
         {
             alarms[0].taskID[aux] = tarefa[i].id;
             aux++;
@@ -184,6 +185,7 @@ int cancelTask(int taskID)
         if (tarefa[i].id == taskID)
         {
             tarefa[i].state = 2; // 2 para cancelado
+            tarefa[i].timeToTask = -1; // 2 para cancelado
         }
     }
     setAlarm();
@@ -196,6 +198,7 @@ int execTask()
     char *outputERR[10][1024];
     int nbyte = 256;
     char delim[] = " ";
+    int *exitVal;
     char *cmd[256], *token[nbyte];
     printf("\nEXEC TASK\n");
 
@@ -262,29 +265,23 @@ int execTask()
                 close(pd[i + rounds][0]);
                 close(1);
                 dup(pd[i + rounds][1]);
-                // close(2);
-                // dup(pd[i + rounds][2]);
+              
 
                 token[0] = strtok(comandos[i + rounds].cmd, delim);
                 // printf("TOKEN0 !!!!! %s ", token[0]);
                 int i = 0;
                 while (token[i] != NULL)
                 {
-                    if (i == 0)
-                        printf("Executável: %s\n", token[i]);
-                    else
-                        printf("Arg %d : %s\n", i, token[i]);
                     i++;
                     token[i] = strtok(NULL, delim);
                 }
                 execvp(token[0], token);
-                perror("Erro no exec:");
+                perror("erro no exec");
+                exit(errno);
             }
 
             while (pid_number = wait(&status) > 0)
             {
-                // close(2);
-                // dup(pd[i + rounds][2]);
                 close(pd[i + rounds][1]); //Fecho o descritor de ficheiro associado ao descritor de escrita do pipe
                 dup2(pd[i + rounds][0], 0);
                 read(0, output[i + rounds], sizeof(output[i + rounds]));
@@ -298,10 +295,16 @@ int execTask()
                 printf("\n ---------------\n");
 
                 pid_number = wait(&status);
+                 if(WIFEXITED(status)){
+                     snprintf(outputERR[i + rounds], sizeof(output[i + rounds]), "%s", strerror(WEXITSTATUS(status)));
+                     snprintf(exitVal, sizeof exitVal,"%d",WEXITSTATUS(status));
+                 }
+                    
                 // printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
             }
         }
         rounds = rounds + countCmd;
+        setAlarm();
     }
 
     for (int aux = 0; aux < alarms[0].ntasks; aux++)
@@ -312,9 +315,10 @@ int execTask()
             if (tarefa[i].id == taksid)
             {
                 strcpy(tarefa[taksid].output, output[aux]);
-                strcpy(tarefa[taksid].outputERR, output[aux]);
-
+                strcpy(tarefa[taksid].outputERR, outputERR[aux]);
+                tarefa[taksid].timeToTask = -1;
                 tarefa[taksid].state = 1;
+                tarefa[taksid].exitValue = exitVal;
                 printf("OUTPUT GUARDADO!!!! ");
                 printf("%s", tarefa[taksid].output);
             }
@@ -470,6 +474,7 @@ int main()
             tarefa[n].minuto = minuto;
             tarefa[n].timeToTask = difference;
             tarefa[n].state = 0;
+            tarefa[n].exitValue = 0;
 
             strcpy(tarefa[n].cmd, comando);
             strcpy(tarefa[n].output, empty);
@@ -613,9 +618,9 @@ int main()
                     if (tarefa[i].state == 1)
                     { //efetuada
                       
-                        int aux = snprintf(NULL, 0, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n&s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
+                        int aux = snprintf(NULL, 0, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n%s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
                         printf("output Size: %d", aux);
-                        snprintf(resultBufferAux, aux + 1, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n&s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
+                        snprintf(resultBufferAux, aux + 1, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n%s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
                     }
                     else
                     {
