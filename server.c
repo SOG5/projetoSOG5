@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <wait.h>
 #include <string.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -25,6 +26,7 @@ struct Tarefas
     double timeToTask;
     int dia, mes, ano, hora, minuto;
     char output[1024];
+    char outputERR[1024];
 };
 
 struct Alarm
@@ -32,6 +34,7 @@ struct Alarm
     int taskID[100];
     double timeToTask;
     int ntasks;
+    int nMax;
 };
 
 struct Comands
@@ -41,7 +44,7 @@ struct Comands
 
 //Variáveis globais...
 struct Tarefas tarefa[200];
-struct Alarm alarms[200];
+struct Alarm alarms[1];
 struct Comands comandos[100];
 
 int countTarefas()
@@ -60,10 +63,6 @@ int countAlarms()
     printf("%d", i);
     return i;
 };
-
-int getAlarm()
-{
-}
 
 time_t getSeconds(int *dataValues[3], int *timeValues[2])
 {
@@ -119,7 +118,7 @@ int setAlarm()
 {
     int *dia, *mes, *ano, *hora, *minuto;
     int *dataAux[3], *timeAux[2], taskAux[10];
-    double diffAux = 999999999999999999999999999;
+    double diffAux = 99999999999999999999999999999;
     int eq = 0;
     int n = countTarefas();
     for (int i = 0; i < n; i++)
@@ -172,6 +171,11 @@ int setAlarm()
     return 0;
 }
 
+int setMax(int nmax)
+{
+    alarms[0].nMax = nmax;
+}
+
 int cancelTask(int taskID)
 {
     int n = countTarefas();
@@ -180,19 +184,16 @@ int cancelTask(int taskID)
         if (tarefa[i].id == taskID)
         {
             tarefa[i].state = 2; // 2 para cancelado
-            // n = countAlarms();
-            // for(i=0; i< n ; i++){
-            //     if(alarms[i].taskID == taskID)
-
-            // }
         }
     }
+    setAlarm();
 }
 
 int execTask()
 {
 
     char *output[10][1024];
+    char *outputERR[10][1024];
     int nbyte = 256;
     char delim[] = " ";
     char *cmd[256], *token[nbyte];
@@ -231,56 +232,79 @@ int execTask()
     int status;
     int pid_number;
     int pd[10][2];
+    int cmdAux = countCmd;
+    int taskMAX = alarms[0].nMax;
+    int rounds = 0;
 
-    // pipe(pd);
-   
-
-    for (int i = 0; i < countCmd; i++)
+    while (cmdAux > 0)
     {
-        pipe(pd[i]);
-        if ((pid = fork()) < 0)
+
+        if (cmdAux - taskMAX >= 0)
         {
-            perror("fork");
-            abort();
+            countCmd = taskMAX;
+            cmdAux = cmdAux - taskMAX;
         }
-        else if (pid == 0)
+        else if (cmdAux - taskMAX < 0)
         {
-            close(pd[i][0]);
-            close(1);
-            dup(pd[i][1]);
-            token[0] = strtok(comandos[i].cmd, delim);
-            // printf("TOKEN0 !!!!! %s ", token[0]);
-            int i = 0;
-            while (token[i] != NULL)
+            countCmd = cmdAux;
+            cmdAux = cmdAux - taskMAX;
+        }
+        for (int i = 0; i < countCmd; i++)
+        {
+            pipe(pd[i + rounds]);
+            if ((pid = fork()) < 0)
             {
-                if (i == 0)
-                    printf("Executável: %s\n", token[i]);
-                else
-                    printf("Arg %d : %s\n", i, token[i]);
-                i++;
-                token[i] = strtok(NULL, delim);
+                perror("fork");
+                abort();
             }
-            execvp(token[0], token);
-            perror("Erro no execlp: ");
+            else if (pid == 0)
+            {
+                close(pd[i + rounds][0]);
+                close(1);
+                dup(pd[i + rounds][1]);
+                // close(2);
+                // dup(pd[i + rounds][2]);
+
+                token[0] = strtok(comandos[i + rounds].cmd, delim);
+                // printf("TOKEN0 !!!!! %s ", token[0]);
+                int i = 0;
+                while (token[i] != NULL)
+                {
+                    if (i == 0)
+                        printf("Executável: %s\n", token[i]);
+                    else
+                        printf("Arg %d : %s\n", i, token[i]);
+                    i++;
+                    token[i] = strtok(NULL, delim);
+                }
+                execvp(token[0], token);
+                perror("Erro no exec:");
+            }
+
+            while (pid_number = wait(&status) > 0)
+            {
+                // close(2);
+                // dup(pd[i + rounds][2]);
+                close(pd[i + rounds][1]); //Fecho o descritor de ficheiro associado ao descritor de escrita do pipe
+                dup2(pd[i + rounds][0], 0);
+                read(0, output[i + rounds], sizeof(output[i + rounds]));
+                // read(2, outputERR[i + rounds], sizeof(outputERR[i + rounds]));
+                printf("\n -------- OUTPUT ----\n");
+
+                printf("%s\n", output[i + rounds]);
+                // printf("\n -------- EROOR ----\n");
+                // printf("%s\n", outputERR[i + rounds]);
+
+                printf("\n ---------------\n");
+
+                pid_number = wait(&status);
+                // printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
+            }
         }
-
-        while (pid_number = wait(&status) > 0)
-        {
-
-            close(pd[i][1]); //Fecho o descritor de ficheiro associado ao descritor de escrita do pipe
-            dup2(pd[i][0], 0);
-            read(0, output[i], sizeof(output[i]));
-            printf("\n -------- OUTPUT ----\n");
-
-            printf("%s\n", output[i]);
-            printf("\n ---------------\n");
-        
-            pid_number = wait(&status);
-            // printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
-        }
+        rounds = rounds + countCmd;
     }
 
-   for (int aux = 0; aux < countCmd; aux++)
+    for (int aux = 0; aux < alarms[0].ntasks; aux++)
     {
         for (int i = 0; i < n; i++)
         {
@@ -288,6 +312,8 @@ int execTask()
             if (tarefa[i].id == taksid)
             {
                 strcpy(tarefa[taksid].output, output[aux]);
+                strcpy(tarefa[taksid].outputERR, output[aux]);
+
                 tarefa[taksid].state = 1;
                 printf("OUTPUT GUARDADO!!!! ");
                 printf("%s", tarefa[taksid].output);
@@ -331,9 +357,10 @@ int main()
 {
 
     int fd1, nbyte = 256;
-    char *buf1 = (char *)malloc(nbyte * sizeof(char)), *buf2 = (char *)malloc(nbyte * sizeof(char));
+    char *buf1 = (char *)malloc(nbyte * sizeof(char)), *buf2 = (char *)malloc(10048 * sizeof(char));
+
     char delim[] = " ";
-    char *agendar = "-a", *listar = "-l", *exec = "-e", *cancelar = "-c";
+    char *agendar = "-a", *listar = "-l", *cancelar = "-c", *nmax = "-n", *email = "-e", *result = "-r";
     int len;
     char *data[10];
     char *horas[10];
@@ -348,22 +375,27 @@ int main()
     char *aux3[100];
     memset(aux3, 0, sizeof aux3);
     memset(aux2, 0, sizeof aux2);
+
     // FIFO file path
     char *myfifo = "/tmp/myfifo";
 
+    alarms[0].nMax = 10;
     // Creating the named file(FIFO)
     // mkfifo(<pathname>,<permission>)
     mkfifo(myfifo, 0666);
+
     signal(SIGALRM, signalhandler);
 
     char *token[nbyte], *dataToken[nbyte], *timeToken[100], response[256];
     while (1)
     {
 
+        memset(buf1, 0, strlen(buf1));
+        memset(buf2, 0, strlen(buf2));
         // First open in read only and read to buf1
         fd1 = open(myfifo, O_RDONLY);
         read(fd1, buf1, nbyte);
-
+        close(fd1);
         printf("BUFFER TEM : %s\n", buf1);
 
         token[0] = strtok(buf1, delim);
@@ -421,12 +453,15 @@ int main()
             timeAux[1] = minuto;
 
             double difference = getSeconds(dataAux, timeAux);
+            if (difference < 0)
+                 break;
             // printf("Difference is %.0f seconds\n", difference);
 
             int n = countTarefas();
             printf("\nnumero de tarefas: \t %d\n", n);
             printf("\n");
 
+            char *empty = "<empty>";
             tarefa[n].id = n;
             tarefa[n].dia = dia;
             tarefa[n].mes = mes;
@@ -435,58 +470,220 @@ int main()
             tarefa[n].minuto = minuto;
             tarefa[n].timeToTask = difference;
             tarefa[n].state = 0;
+
             strcpy(tarefa[n].cmd, comando);
+            strcpy(tarefa[n].output, empty);
+            strcpy(tarefa[n].outputERR, empty);
 
             setAlarm();
-            // timeToTask = getSeconds(dataAux, timeAux);
 
-            // storeTask(tarefa[n].id, tarefa[n].data, tarefa[n].hora);
+            fd1 = open(myfifo, O_WRONLY);
+            write(fd1, "ok", nbyte);
+            close(fd1);
         }
         // listar
         else if (strcmp(token[0], listar) == 0)
         {
-            char *printState;
+
+            int buffsize = 10048;
+            char *listBuffer = (char *)malloc(buffsize);
             printf("Pedido de listagem\n");
             num = countTarefas();
+            char *listBufferAux1[100][1024];
+            char *listBufferAux2[100][1024];
+            char *listBufferAux3[100][1024];
+            // memset(listBufferAux1, 0, 1024);
+            // memset(listBufferAux2, 0, 1024);
+            // memset(listBufferAux3, 0, 1024);
+
+            int countL[3] = {0, 0, 0};
+
             for (int i = 0; i < num; i++)
             {
+
                 if (tarefa[i].state == 0)
-                    printState = "Agendada";
+                {
+                    printf("andenda");
+                    int aux1 = snprintf(NULL, 0, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
+                    snprintf(listBufferAux1[countL[0]], aux1 + 1, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
+                    printf("%s", listBufferAux1[countL[0]]);
+                    countL[0]++;
+                }
+
                 else if (tarefa[i].state == 1)
-                    printState = "Efectuada";
+                {
+                    printf("exec");
+
+                    int aux2 = snprintf(NULL, 0, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
+
+                    snprintf(listBufferAux2[countL[1]], aux2 + 1, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
+                    printf("%s", listBufferAux2[countL[1]]);
+                    countL[1]++;
+                }
                 else if (tarefa[i].state == 2)
-                    printState = "Cancelada";
+                {
+                    printf("cancelada");
 
-                printf("tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n estado: %s\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, printState, tarefa[i].cmd);
+                    int aux3 = snprintf(NULL, 0, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
+                    snprintf(listBufferAux3[countL[2]], aux3 + 1, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
+                    printf("%s", listBufferAux3[countL[2]]);
+                    countL[2]++;
+
+                    // buffsize = snprintf(NULL, 0, "tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n estado: %s\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, printState, tarefa[i].cmd) + buffsize;
+                    // snprintf(listBufferAux[i], buffsize + 1, "tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n estado: %s\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, printState, tarefa[i].cmd);
+                    // strcat(listBuffer, listBufferAux[i]);
+                    // printf("list BUFFER %s", listBuffer);
+                }
             }
+
+            if (countL[0] != 0)
+            {
+
+                strcat(listBuffer, "angendadas:\n");
+
+                for (int i = 0; i < countL[0]; i++)
+                {
+                    strcat(listBuffer, listBufferAux1[i]);
+                    printf("\nAgenda Buffer\n");
+                    printf("%s\n", listBuffer);
+                }
+            }
+
+            if (countL[1] != 0)
+            {
+                strcat(listBuffer, "\nexecutadas:\n");
+                for (int i = 0; i < countL[1]; i++)
+                {
+                    strcat(listBuffer, listBufferAux2[i]);
+                    printf("\nExec Buffer\n");
+                    printf("%s\n", listBuffer);
+                }
+            }
+
+            if (countL[2] != 0)
+            {
+                strcat(listBuffer, "canceladas:\n");
+                for (int i = 0; i < countL[2]; i++)
+                {
+                    strcat(listBuffer, listBufferAux3[i]);
+                    printf("\n Cnela Buffer\n");
+                    printf("%s\n", listBuffer);
+                }
+            }
+
+            strcpy(buf2, listBuffer);
+
+            fd1 = open(myfifo, O_WRONLY);
+            write(fd1, buf2, buffsize);
+            close(fd1);
+            memset(buf2, 0, buffsize);
+            memset(listBuffer, 0, buffsize);
+            // buffsize = buffsize + 1;
+
+            // printf( "BUFFER SIZE: %d\n", buffsize);
+            // char *listBuffer = (char *)malloc(buffsize * sizeof(char));
+            // printf("rotacoes %s\n", listBuffer);
+            // for (int i = 0; i < num; i++)
+            // {
+            //     strcat(listBuffer, listBufferAux[i]);
+            // }
+            // write(fd1, listBuffer, sizeof(listBuffer));
+            // printf("\n BUFF SIZE %d \n", bufsize);
+            // char *listBuffer[200][buf_size];
         }
 
-        else if ((strcmp(token[0], exec) == 0))
+        else if ((strcmp(token[0], result) == 0))
         {
-            printf("Pedido para exec\n");
-            setAlarm();
-        }
 
+            printf("estou no if!!!!!!!!!");
+            int buffsize = 10048;
+            char *resultBuffer = (char *)malloc(buffsize);
+            memset(resultBuffer, 0, buffsize);
+            char *resultBufferAux[1024];
+            int taksid = token[1];
+            int n = countTarefas();
+            printf("\n\nN %d\n", n);
+
+            for (int i = 0; i < n; i++)
+            {
+                printf("estou no if!!!!!!!!!");
+                if (tarefa[i].id == 0)
+                {
+                      printf("estou no FOR!!!!!!!!!");
+                    if (tarefa[i].state == 1)
+                    { //efetuada
+                      
+                        int aux = snprintf(NULL, 0, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n&s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
+                        printf("output Size: %d", aux);
+                        snprintf(resultBufferAux, aux + 1, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n&s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
+                    }
+                    else
+                    {
+                        printf("\nTArefa ainda não efetuada\n");
+                    }
+
+                    i = n;
+                }
+            }
+            strcpy(resultBuffer, resultBufferAux);
+
+            strcat(buf2, resultBuffer);
+
+            fd1 = open(myfifo, O_WRONLY);
+            write(fd1, buf2, buffsize);
+            close(fd1);
+            memset(buf2, 0, buffsize);
+            memset(resultBuffer, 0, buffsize);
+
+            printf("\n RESULT BUFFER \n");
+            printf("%s\n", resultBuffer);
+        }
         else if ((strcmp(token[0], cancelar) == 0))
         {
+
+            // fd1 = open(myfifo, O_WRONLY);
             int idTarefa;
             printf("Pedido para cancelar\n");
             sscanf(token[1], "%d\n", &idTarefa);
             cancelTask(idTarefa);
             printf("tarefa cancelada");
+
+            fd1 = open(myfifo, O_WRONLY);
+            write(fd1, "ok", nbyte);
+            close(fd1);
+
+            // write(fd1, "ok", nbyte);
+            // close(fd1);
+        }
+        else if ((strcmp(token[0], nmax) == 0))
+        {
+
+            int nmax;
+
+            printf("Pedido definir N MAX\n");
+            sscanf(token[1], "%d\n", &nmax);
+
+            setMax(nmax);
+            printf("Novo numero maximo de tarefas definido");
+            fd1 = open(myfifo, O_WRONLY);
+            write(fd1, "ok", nbyte);
+            close(fd1);
+        }
+        else
+        {
+            fd1 = open(myfifo, O_WRONLY);
+
+            write(fd1, "comando inválido", nbyte);
+            close(fd1);
         }
 
-        memset(buf1, 0, strlen(buf1));
-
-        close(fd1);
-
-        // Now open in write mode and write
-        // string taken from user.
-        fd1 = open(myfifo, O_WRONLY);
-        // read(0, buf2, nbyte);
-        write(fd1, "ok", nbyte);
-        close(fd1);
-        memset(buf2, 0, strlen(buf2));
+        // close(fd1);
+        // // Now open in write mode and write
+        // // string taken from user.
+        // fd1 = open(myfifo, O_WRONLY);
+        // // read(0, buf2, nbyte);
+        // write(fd1, "ok", nbyte);
+        // close(fd1);
     }
     return 0;
 }

@@ -10,9 +10,10 @@
 
 int main()
 {
-    int fd, nbyte = 256;
+    int fd, nbyte = 256, readbuf = 10048;
     char *buf1 = (char *)malloc(nbyte * sizeof(char));
-    char *buf2 = (char *)malloc(nbyte * sizeof(char));
+    char *buf2 = (char *)malloc(readbuf * sizeof(char));
+    char *agenda="agenda ";
     size_t num;
     // FIFO file path
     char *myfifo = "/tmp/myfifo";
@@ -21,33 +22,33 @@ int main()
     // mkfifo(<pathname>, <permission>)
     mkfifo(myfifo, 0666);
 
-    char arr1[80], arr2[80];
     while (1)
     {
+        memset(buf2, 0, strlen(buf2));
+        memset(buf1, 0, strlen(buf1));
+        write(1,agenda,sizeof(agenda));
         // Open FIFO for write only
         fd = open(myfifo, O_WRONLY);
 
-        // Take an input arr2ing from user.
-        // 80 is maximum length
         read(0, buf1, nbyte);
 
         // Write the input arr2ing on FIFO
         // and close it
         write(fd, buf1, nbyte);
-        close(fd);
-        memset(buf1, 0, strlen(buf1));
 
+        close(fd);
         // Open FIFO for Read only
         fd = open(myfifo, O_RDONLY);
 
         // Read from FIFO
-        read(fd, buf2, nbyte);
-
-        // Print the read message
-        printf("User2: %s\n", buf2);
+        read(fd, buf2, readbuf);
         close(fd);
-        memset(buf2, 0, strlen(buf2));
+        // Print the read message
+        // write(1, buf2, readbuf);
 
+        printf("%s",buf2);
+   
+        memset(buf1, 0, strlen(buf2));
     }
     return 0;
 }
