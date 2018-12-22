@@ -13,27 +13,23 @@ int main()
     int fd, nbyte = 256, readbuf = 10048;
     char *buf1 = (char *)malloc(nbyte * sizeof(char));
     char *buf2 = (char *)malloc(readbuf * sizeof(char));
-    char *agenda="agenda ";
+    char *agenda = "agenda ";
     size_t num;
     // FIFO file path
     char *myfifo = "/tmp/myfifo";
 
-    // Creating the named file(FIFO)
-    // mkfifo(<pathname>, <permission>)
     mkfifo(myfifo, 0666);
 
     while (1)
     {
         memset(buf2, 0, strlen(buf2));
         memset(buf1, 0, strlen(buf1));
-        write(1,agenda,sizeof(agenda));
+        write(1, agenda, sizeof(agenda));
         // Open FIFO for write only
         fd = open(myfifo, O_WRONLY);
 
         read(0, buf1, nbyte);
 
-        // Write the input arr2ing on FIFO
-        // and close it
         write(fd, buf1, nbyte);
 
         close(fd);
@@ -44,10 +40,8 @@ int main()
         read(fd, buf2, readbuf);
         close(fd);
         // Print the read message
-        // write(1, buf2, readbuf);
+        printf("%s", buf2);
 
-        printf("%s",buf2);
-   
         memset(buf1, 0, strlen(buf2));
     }
     return 0;

@@ -185,7 +185,7 @@ int cancelTask(int taskID)
         if (tarefa[i].id == taskID)
         {
             tarefa[i].state = 2;       // 2 para cancelado
-            tarefa[i].timeToTask = -1; // 2 para cancelado
+            tarefa[i].timeToTask = -1; // -1 para cancelada
         }
     }
     setAlarm();
@@ -229,8 +229,6 @@ int execTask()
         printf("comando a executrar: %s\n", comandos[i].cmd);
     }
 
-    // printf("comando a executrar: %s\n", comandos[0].cmd);
-
     pid_t pid;
     int status;
     int pid_number;
@@ -267,7 +265,6 @@ int execTask()
                 dup(pd[i + rounds][1]);
 
                 token[0] = strtok(comandos[i + rounds].cmd, delim);
-                // printf("TOKEN0 !!!!! %s ", token[0]);
                 int i = 0;
                 while (token[i] != NULL)
                 {
@@ -281,15 +278,13 @@ int execTask()
 
             while (pid_number = wait(&status) > 0)
             {
-                close(pd[i + rounds][1]); //Fecho o descritor de ficheiro associado ao descritor de escrita do pipe
+                close(pd[i + rounds][1]); 
                 dup2(pd[i + rounds][0], 0);
                 read(0, output[i + rounds], sizeof(output[i + rounds]));
-                // read(2, outputERR[i + rounds], sizeof(outputERR[i + rounds]));
                 printf("\n -------- OUTPUT ----\n");
 
                 printf("%s\n", output[i + rounds]);
-                // printf("\n -------- EROOR ----\n");
-                // printf("%s\n", outputERR[i + rounds]);
+
 
                 printf("\n ---------------\n");
 
@@ -364,7 +359,6 @@ int main()
 
     int fd1, nbyte = 256;
     char *buf1 = (char *)malloc(nbyte * sizeof(char)), *buf2 = (char *)malloc(10048 * sizeof(char));
-
     char delim[] = " ";
     char *agendar = "-a", *listar = "-l", *cancelar = "-c", *nmax = "-n", *email = "-e", *result = "-r";
     int len;
@@ -398,7 +392,7 @@ int main()
 
         memset(buf1, 0, strlen(buf1));
         memset(buf2, 0, strlen(buf2));
-        // First open in read only and read to buf1
+
         fd1 = open(myfifo, O_RDONLY);
         read(fd1, buf1, nbyte);
         close(fd1);
@@ -425,7 +419,6 @@ int main()
             sscanf(token[1], "%s\n", data);
             sscanf(token[2], "%s\n", horas);
             strcpy(comando, token[3]);
-            // sscanf(token[3], "%s\n", comando);
             printf("data: %s\nhoras: %s \ncomando: %s\n", &data, &horas, &comando);
 
             dataToken[0] = strtok(&data, "/");
@@ -499,10 +492,6 @@ int main()
             char *listBufferAux1[100][1024];
             char *listBufferAux2[100][1024];
             char *listBufferAux3[100][1024];
-            // memset(listBufferAux1, 0, 1024);
-            // memset(listBufferAux2, 0, 1024);
-            // memset(listBufferAux3, 0, 1024);
-
             int countL[3] = {0, 0, 0};
 
             for (int i = 0; i < num; i++)
@@ -535,11 +524,6 @@ int main()
                     snprintf(listBufferAux3[countL[2]], aux3 + 1, "%d %d-%d-%d %d:%d:00 %s\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd);
                     printf("%s", listBufferAux3[countL[2]]);
                     countL[2]++;
-
-                    // buffsize = snprintf(NULL, 0, "tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n estado: %s\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, printState, tarefa[i].cmd) + buffsize;
-                    // snprintf(listBufferAux[i], buffsize + 1, "tafera: \t %d\n data : \t %d/%d/%d\n horas: \t %d:%d:00\n estado: %s\n comando: %s\n", tarefa[i].id, tarefa[i].dia, tarefa[i].mes, tarefa[i].ano, tarefa[i].hora, tarefa[i].minuto, printState, tarefa[i].cmd);
-                    // strcat(listBuffer, listBufferAux[i]);
-                    // printf("list BUFFER %s", listBuffer);
                 }
             }
 
@@ -585,18 +569,6 @@ int main()
             close(fd1);
             memset(buf2, 0, buffsize);
             memset(listBuffer, 0, buffsize);
-            // buffsize = buffsize + 1;
-
-            // printf( "BUFFER SIZE: %d\n", buffsize);
-            // char *listBuffer = (char *)malloc(buffsize * sizeof(char));
-            // printf("rotacoes %s\n", listBuffer);
-            // for (int i = 0; i < num; i++)
-            // {
-            //     strcat(listBuffer, listBufferAux[i]);
-            // }
-            // write(fd1, listBuffer, sizeof(listBuffer));
-            // printf("\n BUFF SIZE %d \n", bufsize);
-            // char *listBuffer[200][buf_size];
         }
 
         else if ((strcmp(token[0], result) == 0))
@@ -649,7 +621,6 @@ int main()
         else if ((strcmp(token[0], cancelar) == 0))
         {
 
-            // fd1 = open(myfifo, O_WRONLY);
             int idTarefa;
             printf("Pedido para cancelar\n");
             sscanf(token[1], "%d\n", &idTarefa);
@@ -659,9 +630,6 @@ int main()
             fd1 = open(myfifo, O_WRONLY);
             write(fd1, "ok", nbyte);
             close(fd1);
-
-            // write(fd1, "ok", nbyte);
-            // close(fd1);
         }
         else if ((strcmp(token[0], nmax) == 0))
         {
@@ -684,14 +652,6 @@ int main()
             write(fd1, "comando inválido", nbyte);
             close(fd1);
         }
-
-        // close(fd1);
-        // // Now open in write mode and write
-        // // string taken from user.
-        // fd1 = open(myfifo, O_WRONLY);
-        // // read(0, buf2, nbyte);
-        // write(fd1, "ok", nbyte);
-        // close(fd1);
     }
     return 0;
 }
