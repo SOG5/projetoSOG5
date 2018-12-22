@@ -124,7 +124,7 @@ int setAlarm()
     int n = countTarefas();
     for (int i = 0; i < n; i++)
     {
-        if (tarefa[i].state == 0 && tarefa[i].timeToTask >0)
+        if (tarefa[i].state == 0 && tarefa[i].timeToTask > 0)
         {
             dataAux[0] = tarefa[i].dia;
             dataAux[1] = tarefa[i].mes;
@@ -184,7 +184,7 @@ int cancelTask(int taskID)
     {
         if (tarefa[i].id == taskID)
         {
-            tarefa[i].state = 2; // 2 para cancelado
+            tarefa[i].state = 2;       // 2 para cancelado
             tarefa[i].timeToTask = -1; // 2 para cancelado
         }
     }
@@ -265,7 +265,6 @@ int execTask()
                 close(pd[i + rounds][0]);
                 close(1);
                 dup(pd[i + rounds][1]);
-              
 
                 token[0] = strtok(comandos[i + rounds].cmd, delim);
                 // printf("TOKEN0 !!!!! %s ", token[0]);
@@ -295,11 +294,14 @@ int execTask()
                 printf("\n ---------------\n");
 
                 pid_number = wait(&status);
-                 if(WIFEXITED(status)){
-                     snprintf(outputERR[i + rounds], sizeof(output[i + rounds]), "%s", strerror(WEXITSTATUS(status)));
-                     snprintf(exitVal, sizeof exitVal,"%d",WEXITSTATUS(status));
-                 }
-                    
+                if (WIFEXITED(status))
+                {
+
+                    snprintf(outputERR[i + rounds], sizeof(output[i + rounds]), "%s", strerror(WEXITSTATUS(status)));
+                    exitVal = WEXITSTATUS(status);
+            
+                }
+
                 // printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
             }
         }
@@ -458,7 +460,7 @@ int main()
 
             double difference = getSeconds(dataAux, timeAux);
             if (difference < 0)
-                 break;
+                break;
             // printf("Difference is %.0f seconds\n", difference);
 
             int n = countTarefas();
@@ -605,22 +607,23 @@ int main()
             char *resultBuffer = (char *)malloc(buffsize);
             memset(resultBuffer, 0, buffsize);
             char *resultBufferAux[1024];
-            int taksid = token[1];
+            int *taksid;
             int n = countTarefas();
             printf("\n\nN %d\n", n);
-
+            sscanf(token[1], "%d\n", &taksid);
+            printf("taskID %d\n", taksid);
             for (int i = 0; i < n; i++)
             {
-                printf("estou no if!!!!!!!!!");
-                if (tarefa[i].id == 0)
+                printf("estou no For!!!!!!!!!");
+                if (tarefa[i].id == taksid)
                 {
-                      printf("estou no FOR!!!!!!!!!");
+                    printf("estou no if dentro do for!!!!!!!!!");
                     if (tarefa[i].state == 1)
                     { //efetuada
-                      
-                        int aux = snprintf(NULL, 0, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n%s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
+
+                        int aux = snprintf(NULL, 0, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n%s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, tarefa[i].exitValue, tarefa[i].output, tarefa[i].outputERR);
                         printf("output Size: %d", aux);
-                        snprintf(resultBufferAux, aux + 1, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n%s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, 0, tarefa[i].output, tarefa[i].outputERR);
+                        snprintf(resultBufferAux, aux + 1, "\nId:\n%d\n\nData:\n%d-%d-%d %d:%d:00\n\nLinha de comando:\n%s\n\nValor de saída:\n%d\n\nStandard output:\n%s\n\nStandard error:\n%s\n\n", tarefa[i].id, tarefa[i].ano, tarefa[i].mes, tarefa[i].dia, tarefa[i].hora, tarefa[i].minuto, tarefa[i].cmd, tarefa[i].exitValue, tarefa[i].output, tarefa[i].outputERR);
                     }
                     else
                     {
