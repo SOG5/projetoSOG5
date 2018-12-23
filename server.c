@@ -295,8 +295,8 @@ int execTask()
                 //     strcpy(msgSubject, comandos[i + rounds].cmd);
                 //     // strcpy(mail_to, alarms[0].email);
 
-                //     sizeMsg = snprintf(NULL, 0, "echo '%s' | mail -s '%s' %s", msgBody, msgSubject, alarms[0].email);
-                //     snprintf(sendmail, sizeMsg + 1, "echo '%s' | mail -s '%s' %s", msgBody, msgSubject, alarms[0].email);
+                //    sizeMsg = snprintf(NULL, 0, "echo \"\%s\"\ | mail -s \"\%s\"\"' %s", msgBody, msgSubject, alarms[0].email);
+                //     snprintf(sendmail, sizeMsg + 1, "echo \"\%s\"\| mail -s \"\%s\"\ %s", msgBody, msgSubject, alarms[0].email);
                 //     printf("\ncomando a ser executado no exelp: \n %s", sendmail);
 
                 //     // exec sendmail
@@ -325,8 +325,8 @@ int execTask()
                     //     strcpy(msgSubject, comandos[i + rounds].cmd);
                     //     // strcpy(mail_to, alarms[0].email);
 
-                    //     sizeMsg = snprintf(NULL, 0, "echo '%s' | mail -s '%s' %s", msgBody, msgSubject, alarms[0].email);
-                    //     snprintf(sendmail, sizeMsg + 1, "echo '%s' | mail -s '%s' %s", msgBody, msgSubject, alarms[0].email);
+                    //     sizeMsg = snprintf(NULL, 0, "echo \"\%s\"\ | mail -s \"\%s\"\"' %s", msgBody, msgSubject, alarms[0].email);
+                    //     snprintf(sendmail, sizeMsg + 1, "echo \"\%s\"\| mail -s \"\%s\"\ %s", msgBody, msgSubject, alarms[0].email);
                     //     printf("\ncomando a ser executado no exelp: \n %s", sendmail);
 
                     //     // Exec sendmail
