@@ -198,8 +198,9 @@ int cancelTask(int taskID)
 int execTask()
 {
 
-    char *output[10][1024];
-    char *outputERR[10][1024];
+    char *output[100][1024];
+    int *exitValAux[100];
+    char *outputERR[100][1024];
     int nbyte = 256;
     char delim[] = " ";
     int *exitVal;
@@ -293,24 +294,28 @@ int execTask()
 
                 //     strcpy(msgBody, output[i + rounds]);
                 //     strcpy(msgSubject, comandos[i + rounds].cmd);
-                //     // strcpy(mail_to, alarms[0].email);
-
-                //    sizeMsg = snprintf(NULL, 0, "echo \"\%s\"\ | mail -s \"\%s\"\"' %s", msgBody, msgSubject, alarms[0].email);
-                //     snprintf(sendmail, sizeMsg + 1, "echo \"\%s\"\| mail -s \"\%s\"\ %s", msgBody, msgSubject, alarms[0].email);
+                //     strcpy(mail_to, alarms[0].email);
+                //     sizeMsg = snprintf(NULL, 0, "echo '%s' | mail -s '%s' %s", msgBody, msgSubject, alarms[0].email);
+                //     snprintf(sendmail, sizeMsg + 1, "echo '%s' | mail -s '%s' %s", msgBody, msgSubject, alarms[0].email);
                 //     printf("\ncomando a ser executado no exelp: \n %s", sendmail);
-
                 //     // exec sendmail
 
-                //     // execlp("ps", sendmail, NULL);
+                //     execlp("ps", sendmail, NULL);
                 //     exit(0);
                 // }
-                // wait(&pid2);
+                // else
+                // {
+                //     wait(&pid2);
+                // }
 
                 printf("\n -------- OUTPUT ----\n");
                 printf("%s\n", output[i + rounds]);
                 printf("\n ---------------\n");
 
+                exitVal = WEXITSTATUS(status);
                 pid_number = wait(&status);
+               
+                 printf("exit value: %d", exitVal);
                 if (WIFEXITED(status))
                 {
                     snprintf(outputERR[i + rounds], sizeof(output[i + rounds]), "%s", strerror(WEXITSTATUS(status)));
@@ -336,6 +341,8 @@ int execTask()
                     // }
                     // wait(&pid3);
                 }
+           
+               exitValAux[i+rounds] = exitVal;
 
                 // printf("Child with PID %d exited with status 0x%x.\n, my father %d", getppid(), WEXITSTATUS(status), getppid());
             }
@@ -354,13 +361,16 @@ int execTask()
                 strcpy(tarefa[taksid].outputERR, outputERR[aux]);
                 tarefa[taksid].timeToTask = -1;
                 tarefa[taksid].state = 1;
-                tarefa[taksid].exitValue = exitVal;
+                tarefa[taksid].exitValue = exitValAux[aux];
                 printf("OUTPUT GUARDADO!!!! ");
                 printf("%s", tarefa[taksid].output);
             }
         }
     }
     setAlarm();
+    memset(output, 0, sizeof output);
+    memset(outputERR, 0, sizeof outputERR);
+
     return 0;
 }
 
